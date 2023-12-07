@@ -52,7 +52,9 @@ def create_day_folder(day):
 
 
 def fetch_input(folder_path, day, year):
-    url = f"https://adventofcode.com/{year}/day/{day}/input"
+    url = f"https://adventofcode.com/{year}/day/{day}"
+    print_color(f"URL for day {day}, year {year}: {url}", Fore.CYAN)
+    url += "/input"
     headers = {"Cookie": f"session={AOC_SESSION}"}
     response = requests.get(url, headers=headers)
     input_file_path = os.path.join(folder_path, "input.txt")

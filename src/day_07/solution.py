@@ -46,105 +46,155 @@ class Strength(Enum):
     FULL_HOUSE = 5
     THREE = 4
     TWO_PAIRS = 3
-    # A23A4
     ONE_PAIR = 2
-    # all distinct 23456
     HIGH_CARD = 1
 
 
-def sort_hand(hand):
-    # sort the hand based on the card value
-    cards = [c for c in hand]
-    cards = sorted(cards, key=lambda x: card_value[x], reverse=True)
-    return "".join(cards)
+joker = "J"
 
 
 def get_normal_hand_value(hand):
     _value = 0
     for i, c in zip(range(len(hand), 0, -1), hand):
-        _value += card_value[c] * 10**i
+        _value += card_value[c] * 100**i
     return _value
-
-
-def count_uniques(cards):
-    counts = defaultdict(int)
-    for c in cards:
-        counts[c] += 1
-    return counts
 
 
 def rank_hand(hand):
     # return a rank based on the hand
     cards = [c for c in hand]
-    cards = sorted(cards, key=lambda x: card_value[x], reverse=True)
-    uniques = count_uniques(cards)
-    # print(uniques.values())
-    # check for FIVE
-    if any(v == 5 for v in uniques.values()):
+    counts = Counter(cards)
+    if any(v == 5 for v in counts.values()):
         return Strength.FIVE.value
-    # check for FOUR (4 of a kind in cards)
-    if any(v == 4 for v in uniques.values()):
+    elif any(v == 4 for v in counts.values()):
         return Strength.FOUR.value
-    # check for FULL_HOUSE
-    if len(set(cards[:3])) == 1 and len(set(cards[3:])) == 1:
+    elif any(v == 3 for v in counts.values()) and any(v == 2 for v in counts.values()):
         return Strength.FULL_HOUSE.value
-    if len(set(cards[:2])) == 1 and len(set(cards[2:])) == 1:
-        return Strength.FULL_HOUSE.value
-    # check for THREE
-    if (
-        len(set(cards[:3])) == 1
-        or len(set(cards[1:4])) == 1
-        or len(set(cards[2:])) == 1
-    ):
+    elif any(v == 3 for v in counts.values()):
         return Strength.THREE.value
-    # check for TWO_PAIRS
-    if len(set(cards)) == 3:
+    elif len([v for v in counts.values() if v == 2]) == 2:
         return Strength.TWO_PAIRS.value
-    # check for ONE_PAIR
-    if len(set(cards)) == 4:
+    elif any(v == 2 for v in counts.values()):
         return Strength.ONE_PAIR.value
-    if len(set(cards)) == 5:
+    else:
         return Strength.HIGH_CARD.value
-    return 0
+
+
+def improve_hand(hand):
+    hand, v, cur_rank = hand
+    if joker not in hand:
+        return [hand, v, cur_rank]
+    hand_copy = hand
+    counts = Counter([c for c in hand])
+
+    if cur_rank == Strength.TWO_PAIRS.value:
+        pairs = [k for k, v in counts.items() if v == 2]
+        hand = hand.replace(joker, max(pairs, key=card_value.get))
+    elif cur_rank == Strength.HIGH_CARD.value:
+        highest_card = max([c for c in hand if c != joker], key=card_value.get)
+        hand = hand.replace(joker, highest_card)
+    elif cur_rank == Strength.ONE_PAIR.value:
+        pair = [k for k, v in counts.items() if v == 2][0]
+        highest_card_except_pair = max(
+            [c for c in hand if c != pair], key=card_value.get
+        )
+        hand = (
+            hand.replace(joker, pair)
+            if pair != joker
+            else hand.replace(joker, highest_card_except_pair)
+        )
+    elif cur_rank == Strength.THREE.value:
+        triple = [k for k, v in counts.items() if v == 3][0]
+        if triple == joker:
+            highest_card_except_triple = max(
+                [c for c in hand if c != triple], key=card_value.get
+            )
+            hand = hand.replace(joker, highest_card_except_triple)
+        else:
+            hand = hand.replace(joker, triple)
+    elif cur_rank == Strength.FOUR.value:
+        four = [k for k, v in counts.items() if v == 4][0]
+        if four == joker:
+            highest_card_except_four = max(
+                [c for c in hand if c != four], key=card_value.get
+            )
+            hand = hand.replace(joker, highest_card_except_four)
+        else:
+            hand = hand.replace(joker, four)
+    elif cur_rank == Strength.FIVE.value:
+        hand = hand.replace(joker, "A")
+    elif cur_rank == Strength.FULL_HOUSE.value:
+        triple = [k for k, v in counts.items() if v == 3][0]
+        pair = [k for k, v in counts.items() if v == 2][0]
+        if triple == joker:
+            hand = hand.replace(joker, pair)
+        else:
+            hand = hand.replace(joker, triple)
+
+    return [hand_copy, v, rank_hand(hand)]
 
 
 @timer(return_time=True)
 def task1(day_input):
     day_input = day_input.splitlines()
     hands = [line.split() for line in day_input]
-    hands = [[sort_hand(hand[0]), int(hand[1]), rank_hand(hand[0])] for hand in hands]
-    print(hands)
+    hands = [[hand[0], int(hand[1]), rank_hand(hand[0])] for hand in hands]
     hands = sorted(hands, key=lambda x: x[2], reverse=True)
-    # if the rank is the same, then compare the value of the hand with get_normal_hand_value function
+
     ranked_hands = defaultdict(list)
     for hand in hands:
         ranked_hands[hand[2]].append(hand)
+
     for key, value in ranked_hands.items():
         ranked_hands[key] = sorted(
             value, key=lambda x: get_normal_hand_value(x[0]), reverse=True
         )
+
     hands = []
     for key, value in ranked_hands.items():
         hands.extend(value)
 
-    print(ranked_hands)
     result = 0
     for rank, hand in enumerate(hands[::-1], 1):
-        # print(rank, hand)
         result += rank * hand[1]
     return result
 
 
 @timer(return_time=True)
 def task2(day_input):
-    # Day-specific code for Task 2
-    pass
+    global card_value
+    card_value[joker] = 0
+    day_input = day_input.splitlines()
+    hands = [line.split() for line in day_input]
+    hands = [[hand[0], int(hand[1]), rank_hand(hand[0])] for hand in hands]
+    hands = [improve_hand(hand) for hand in hands]
+
+    hands = sorted(hands, key=lambda x: x[2], reverse=True)
+
+    # if the rank is the same, then compare the value of the hand with get_normal_hand_value function
+    ranked_hands = defaultdict(list)
+    for hand in hands:
+        ranked_hands[hand[2]].append(hand)
+
+    for key, value in ranked_hands.items():
+        ranked_hands[key] = sorted(
+            value, key=lambda x: get_normal_hand_value(x[0]), reverse=True
+        )
+
+    hands = []
+    for key, value in ranked_hands.items():
+        hands.extend(value)
+
+    result = 0
+    for rank, hand in enumerate(hands[::-1], 1):
+        result += rank * hand[1]
+    return result
 
 
 def main():
     # Choose between the real input or the example input
-    # day_input = load_input(os.path.join(cur_dir, "input.txt"))
-    day_input = load_input(os.path.join(cur_dir, "example_input.txt"))
+    day_input = load_input(os.path.join(cur_dir, "input.txt"))
+    # day_input = load_input(os.path.join(cur_dir, "example_input.txt"))
 
     # Call the tasks and store their results (if needed)
     result_task1, time_task1 = task1(day_input)
@@ -160,6 +210,17 @@ def main():
     print("\nTimes:")
     print(f"Task 1: {time_task1:.6f} seconds")
     print(f"Task 2: {time_task2:.6f} seconds")
+
+    # Day 7
+    # ------------------
+
+    # Answers:
+    # Task 1: 250946742
+    # Task 2: 251824095
+
+    # Times:
+    # Task 1: 0.005032 seconds
+    # Task 2: 0.006004 seconds
 
 
 if __name__ == "__main__":
