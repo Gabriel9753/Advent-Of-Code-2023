@@ -39,16 +39,18 @@ card_value = {
     "1": 1,
 }
 
+
 class Strength(Enum):
-    FIVE = 999999999
-    FOUR = 999999998
-    FULL_HOUSE = 999999997
-    THREE = 999999996
-    TWO_PAIRS = 999999995
+    FIVE = 7
+    FOUR = 6
+    FULL_HOUSE = 5
+    THREE = 4
+    TWO_PAIRS = 3
     # A23A4
-    ONE_PAIR = 999999994
+    ONE_PAIR = 2
     # all distinct 23456
-    HIGH_CARD = 999999993
+    HIGH_CARD = 1
+
 
 def sort_hand(hand):
     # sort the hand based on the card value
@@ -56,21 +58,32 @@ def sort_hand(hand):
     cards = sorted(cards, key=lambda x: card_value[x], reverse=True)
     return "".join(cards)
 
+
 def get_normal_hand_value(hand):
     _value = 0
     for i, c in zip(range(len(hand), 0, -1), hand):
-        _value += card_value[c] * 10 ** i
+        _value += card_value[c] * 10**i
     return _value
+
+
+def count_uniques(cards):
+    counts = defaultdict(int)
+    for c in cards:
+        counts[c] += 1
+    return counts
+
 
 def rank_hand(hand):
     # return a rank based on the hand
     cards = [c for c in hand]
     cards = sorted(cards, key=lambda x: card_value[x], reverse=True)
+    uniques = count_uniques(cards)
+    # print(uniques.values())
     # check for FIVE
-    if len(set(cards)) == 1:
+    if any(v == 5 for v in uniques.values()):
         return Strength.FIVE.value
     # check for FOUR (4 of a kind in cards)
-    if len(set(cards[:4])) == 1 or len(set(cards[1:])) == 1:
+    if any(v == 4 for v in uniques.values()):
         return Strength.FOUR.value
     # check for FULL_HOUSE
     if len(set(cards[:3])) == 1 and len(set(cards[3:])) == 1:
@@ -78,7 +91,11 @@ def rank_hand(hand):
     if len(set(cards[:2])) == 1 and len(set(cards[2:])) == 1:
         return Strength.FULL_HOUSE.value
     # check for THREE
-    if len(set(cards[:3])) == 1 or len(set(cards[1:4])) == 1 or len(set(cards[2:])) == 1:
+    if (
+        len(set(cards[:3])) == 1
+        or len(set(cards[1:4])) == 1
+        or len(set(cards[2:])) == 1
+    ):
         return Strength.THREE.value
     # check for TWO_PAIRS
     if len(set(cards)) == 3:
@@ -96,13 +113,16 @@ def task1(day_input):
     day_input = day_input.splitlines()
     hands = [line.split() for line in day_input]
     hands = [[sort_hand(hand[0]), int(hand[1]), rank_hand(hand[0])] for hand in hands]
+    print(hands)
     hands = sorted(hands, key=lambda x: x[2], reverse=True)
     # if the rank is the same, then compare the value of the hand with get_normal_hand_value function
     ranked_hands = defaultdict(list)
     for hand in hands:
         ranked_hands[hand[2]].append(hand)
     for key, value in ranked_hands.items():
-        ranked_hands[key] = sorted(value, key=lambda x: get_normal_hand_value(x[0]), reverse=True)
+        ranked_hands[key] = sorted(
+            value, key=lambda x: get_normal_hand_value(x[0]), reverse=True
+        )
     hands = []
     for key, value in ranked_hands.items():
         hands.extend(value)
@@ -115,7 +135,6 @@ def task1(day_input):
     return result
 
 
-
 @timer(return_time=True)
 def task2(day_input):
     # Day-specific code for Task 2
@@ -124,8 +143,8 @@ def task2(day_input):
 
 def main():
     # Choose between the real input or the example input
-    day_input = load_input(os.path.join(cur_dir, "input.txt"))
-    # day_input = load_input(os.path.join(cur_dir, "example_input.txt"))
+    # day_input = load_input(os.path.join(cur_dir, "input.txt"))
+    day_input = load_input(os.path.join(cur_dir, "example_input.txt"))
 
     # Call the tasks and store their results (if needed)
     result_task1, time_task1 = task1(day_input)
