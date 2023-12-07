@@ -16,3 +16,4 @@ pylint==3.0.2
 ### add specific project dependencies here:
 requests==2.31.0
 python-dotenv==1.0.0
+markdownify==0.11.6
