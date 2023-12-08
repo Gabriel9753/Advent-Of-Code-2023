@@ -19,6 +19,7 @@ from util.general_util import load_input, timer
 last_dir = str(os.path.basename(os.path.normpath(cur_dir)))
 cur_day = re.findall(r"\d+", last_dir)
 cur_day = int(cur_day[0]) if len(cur_day) > 0 else datetime.today().day
+images_path = os.path.join(par_dir, "images")
 
 
 @timer(return_time=True)

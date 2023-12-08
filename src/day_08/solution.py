@@ -7,7 +7,10 @@ from datetime import datetime
 from functools import lru_cache, reduce
 from itertools import chain, combinations, permutations, product
 
+import matplotlib.pyplot as plt
+import networkx as nx
 import numpy as np
+from PIL import Image
 from tqdm import tqdm
 
 cur_dir = os.path.dirname(os.path.abspath(__file__))
@@ -19,16 +22,51 @@ from util.general_util import load_input, timer
 last_dir = str(os.path.basename(os.path.normpath(cur_dir)))
 cur_day = re.findall(r"\d+", last_dir)
 cur_day = int(cur_day[0]) if len(cur_day) > 0 else datetime.today().day
+images_path = os.path.join(par_dir, "images")
+
+
+def build_graph(nodes):
+    G = nx.DiGraph()
+    G.add_nodes_from(nodes.keys())
+    edges = [(node, edge) for node, edges in nodes.items() for edge in edges]
+    G.add_edges_from(edges)
+    return G
+
+
+def draw_graph(G, path, start_node, end_node):
+    # Draw the graph
+    pos = nx.spring_layout(G)  # positions for all nodes
+    fig = plt.figure(figsize=(15, 6))
+    nx.draw(G, pos, node_color="blue", edge_color="gray", node_size=10)
+    nx.draw_networkx_nodes(G, pos, nodelist=path, node_color="r", node_size=3)
+    nx.draw_networkx_edges(
+        G, pos, edgelist=list(zip(path, path[1:])), edge_color="r", width=1
+    )
+    nx.draw_networkx_nodes(
+        G, pos, nodelist=[start_node], node_color="green", node_size=60
+    )
+    nx.draw_networkx_nodes(
+        G, pos, nodelist=[end_node], node_color="purple", node_size=60
+    )
+    plt.savefig(os.path.join(images_path, f"day_{cur_day}_task_1.png"), dpi=300)
 
 
 @timer(return_time=True)
-def task1(instructions, nodes):
+def task1(instructions, nodes, do_viz=False):
     total_steps = 0
     cur, target = "AAA", "ZZZ"
+    path = [cur]
+
     while cur != target:
         for instr in instructions:
             total_steps += 1
             cur = nodes[cur][instr]
+            path.append(cur)
+
+    if do_viz:
+        G = build_graph(nodes)
+        draw_graph(G, path, "AAA", "ZZZ")
+
     return total_steps
 
 
@@ -65,7 +103,7 @@ def main():
     }
 
     # Call the tasks and store their results (if needed)
-    result_task1, time_task1 = task1(instructions, nodes)
+    result_task1, time_task1 = task1(instructions, nodes, do_viz=True)
     result_task2, time_task2 = task2(instructions, nodes)
 
     print(f"\nDay {cur_day}")
