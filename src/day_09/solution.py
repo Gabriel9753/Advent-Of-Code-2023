@@ -26,38 +26,55 @@ def build_diff(values):
     return [values[i + 1] - values[i] for i in range(len(values) - 1)]
 
 
-def extrapolate(hist_steps, last_value):
-    return hist_steps[-1] + last_value
+def extrapolate(hist_steps, last_value, task=1):
+    if task == 1:
+        return last_value + hist_steps[-1]
+    else:
+        return hist_steps[0] - last_value
 
 
-@timer(return_time=True)
-def task1(day_input):
-    day_input = day_input.splitlines()
+def solve(day_input, task=1):
+    result = 0
     for hist in day_input:
         hist = [int(v) for v in hist.split()]
         hist_steps = [hist] + [build_diff(hist)]
         while not all([v == 0 for v in hist_steps[-1]]):
             hist_steps.append(build_diff(hist_steps[-1]))
-        hist_steps[-1].append(0)
-        print(f"Lenght: {len(hist_steps)}")
+        if task == 1:
+            hist_steps[-1].append(0)
+        else:
+            hist_steps[-1].insert(0, 0)
         for i in range(len(hist_steps) - 2, -1, -1):
-            hist_steps[i].append(extrapolate(hist_steps[i], hist_steps[i + 1][-1]))
+            if task == 1:
+                hist_steps[i].append(
+                    extrapolate(hist_steps[i], hist_steps[i + 1][-1], task)
+                )
+            else:
+                hist_steps[i].insert(
+                    0, extrapolate(hist_steps[i], hist_steps[i + 1][0], task)
+                )
+        if task == 1:
+            result += hist_steps[0][-1]
+        else:
+            result += hist_steps[0][0]
 
-        print(hist_steps)
+    return result
 
-        break
+
+@timer(return_time=True)
+def task1(day_input):
+    return solve(day_input, task=1)
 
 
 @timer(return_time=True)
 def task2(day_input):
-    # Day-specific code for Task 2
-    pass
+    return solve(day_input, task=2)
 
 
 def main():
     # Choose between the real input or the example input
-    # day_input = load_input(os.path.join(cur_dir, "input.txt"))
-    day_input = load_input(os.path.join(cur_dir, "example_input.txt"))
+    day_input = load_input(os.path.join(cur_dir, "input.txt")).splitlines()
+    # day_input = load_input(os.path.join(cur_dir, "example_input.txt")).splitlines()
 
     # Call the tasks and store their results (if needed)
     result_task1, time_task1 = task1(day_input)
@@ -73,6 +90,16 @@ def main():
     print("\nTimes:")
     print(f"Task 1: {time_task1:.6f} seconds")
     print(f"Task 2: {time_task2:.6f} seconds")
+    # Day 9
+    # ------------------
+
+    # Answers:
+    # Task 1: 1743490457
+    # Task 2: 1053
+
+    # Times:
+    # Task 1: 0.002997 seconds
+    # Task 2: 0.003000 seconds
 
 
 if __name__ == "__main__":
